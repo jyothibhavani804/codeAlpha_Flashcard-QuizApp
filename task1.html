@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FlashMaster Pro - Smart Flashcard Learning Platform</title>
+<meta name="description" content="Futuristic flashcard quiz platform. Create, study and master knowledge with smart progress tracking and gamified learning." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --bg:#0b0d1a;
+    --bg-2:#10122a;
+    --card:rgba(28,30,58,0.6);
+    --border:rgba(255,255,255,0.08);
+    --fg:#f5f7ff;
+    --muted:#9aa3c7;
+    --primary:#3b82f6;     /* electric blue */
+    --neon:#22d3ee;        /* neon cyan */
+    --glow:#a855f7;        /* purple */
+    --emerald:#10b981;
+    --amber:#f59e0b;
+    --rose:#f43f5e;
+    --gradient-primary:linear-gradient(135deg,#3b82f6,#22d3ee);
+    --gradient-glow:linear-gradient(135deg,#a855f7,#3b82f6);
+    --shadow-glow:0 0 40px -8px rgba(59,130,246,0.55);
+    --shadow-neon:0 0 30px -4px rgba(34,211,238,0.55);
+    --shadow-card:0 8px 32px -12px rgba(0,0,0,0.6);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--fg);
+    min-height:100vh;
+    background-image:
+      radial-gradient(ellipse at top, rgba(120,80,220,0.35), transparent 60%),
+      radial-gradient(ellipse at bottom right, rgba(40,90,200,0.30), transparent 60%);
+    background-attachment:fixed;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.02em;margin:0}
+  .font-display{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.02em}
+  .glass{
+    background:var(--card);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow-card);
+  }
+  .gradient-text{
+    background:var(--gradient-primary);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .btn-hero{
+    background:var(--gradient-primary);
+    color:#0b0d1a;
+    box-shadow:var(--shadow-glow);
+    transition:transform .25s ease, filter .25s ease;
+    border:none;cursor:pointer;
+  }
+  .btn-hero:hover{transform:translateY(-2px);filter:brightness(1.1)}
+  .btn{
+    cursor:pointer;border:1px solid var(--border);
+    background:rgba(255,255,255,0.04);
+    color:var(--fg);
+    transition:background .2s,transform .2s;
+  }
+  .btn:hover{background:rgba(255,255,255,0.08)}
+  .btn-ghost{background:transparent;border:none;color:var(--fg);cursor:pointer}
+  .btn-ghost:hover{background:rgba(255,255,255,0.06)}
+  .btn-danger{color:#fff;background:var(--rose);border:none;cursor:pointer}
+  .btn-danger:hover{filter:brightness(1.1)}
+  .glow-primary{box-shadow:var(--shadow-glow)}
+  .glow-neon{box-shadow:var(--shadow-neon)}
+  input,textarea,select{
+    width:100%;
+    background:rgba(255,255,255,0.04);
+    border:1px solid var(--border);
+    color:var(--fg);
+    padding:0.55rem 0.75rem;border-radius:0.6rem;
+    font-family:inherit;font-size:0.9rem;outline:none;
+  }
+  input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,0.2)}
+  label{font-size:0.8rem;color:var(--muted);font-weight:500}
+  .badge{display:inline-flex;align-items:center;gap:.25rem;padding:.15rem .55rem;border-radius:9999px;font-size:.7rem;border:1px solid var(--border);background:rgba(255,255,255,0.04)}
+  .diff-Easy{background:rgba(16,185,129,0.15);color:#6ee7b7;border-color:rgba(16,185,129,0.3)}
+  .diff-Medium{background:rgba(245,158,11,0.15);color:#fcd34d;border-color:rgba(245,158,11,0.3)}
+  .diff-Hard{background:rgba(244,63,94,0.15);color:#fda4af;border-color:rgba(244,63,94,0.3)}
+  .status-known{background:rgba(16,185,129,0.1);color:#6ee7b7;border:1px solid rgba(16,185,129,0.4)}
+  .status-review{background:rgba(245,158,11,0.1);color:#fcd34d;border:1px solid rgba(245,158,11,0.4)}
+  .status-new{color:var(--muted);border:1px solid var(--border)}
+
+  /* Floating orbs */
+  @keyframes float-orb{
+    0%,100%{transform:translate(0,0) scale(1)}
+    50%{transform:translate(30px,-40px) scale(1.1)}
+  }
+  .orb{
+    position:fixed;border-radius:9999px;filter:blur(60px);opacity:.5;
+    animation:float-orb 12s ease-in-out infinite;pointer-events:none;z-index:-1;
+  }
+
+  /* Grid background */
+  .grid-bg{
+    position:fixed;inset:0;z-index:-1;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse at center, black 40%, transparent 80%);
+            mask-image:radial-gradient(ellipse at center, black 40%, transparent 80%);
+  }
+
+  /* Card 3D flip */
+  .card-3d{perspective:1400px}
+  .card-inner{position:relative;width:100%;height:100%;transition:transform .7s cubic-bezier(.6,.05,.2,1);transform-style:preserve-3d}
+  .card-flipped{transform:rotateY(180deg)}
+  .card-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:1.5rem}
+  .card-back{transform:rotateY(180deg)}
+
+  /* Progress */
+  .progress{position:relative;width:100%;height:.5rem;background:rgba(255,255,255,0.08);border-radius:9999px;overflow:hidden}
+  .progress > div{height:100%;background:var(--gradient-primary);border-radius:9999px;transition:width .4s ease}
+
+  /* Toast */
+  .toasts{position:fixed;top:1rem;right:1rem;display:flex;flex-direction:column;gap:.5rem;z-index:200}
+  .toast{
+    background:rgba(20,22,45,0.95);border:1px solid var(--border);
+    color:var(--fg);padding:.75rem 1rem;border-radius:.75rem;
+    box-shadow:var(--shadow-card);min-width:240px;
+    animation:slidein .3s ease;
+  }
+  .toast.success{border-color:rgba(16,185,129,0.4)}
+  .toast.error{border-color:rgba(244,63,94,0.4)}
+  @keyframes slidein{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+  /* Modal */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(5,7,18,0.7);backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;padding:1rem;z-index:100;
+    animation:fadein .2s ease;
+  }
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  .modal{
+    max-width:32rem;width:100%;
+    background:rgba(18,20,42,0.95);border:1px solid var(--border);
+    border-radius:1.25rem;padding:1.5rem;box-shadow:var(--shadow-card);
+    animation:scalein .2s ease;
+  }
+  @keyframes scalein{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
+
+  .line-clamp-2{
+  display:-webkit-box;
+  display:box;
+  -webkit-line-clamp:2;
+  line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+.line-clamp-3{
+  display:-webkit-box;
+  display:box;
+  -webkit-line-clamp:3;
+  line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+  .icon{width:1rem;height:1rem;display:inline-block;vertical-align:-2px}
+
+  .library-card .actions{opacity:0;transition:opacity .2s}
+  .library-card:hover .actions{opacity:1}
+  .library-card:hover{box-shadow:var(--shadow-glow)}
+
+  .stat-card{position:relative;overflow:hidden;transition:transform .25s}
+  .stat-card:hover{transform:translateY(-2px)}
+  .stat-card .blob{position:absolute;right:-2rem;top:-2rem;height:6rem;width:6rem;border-radius:9999px;filter:blur(30px);opacity:.5}
+
+  @media (max-width:640px){
+    .hide-sm{display:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- Decorative background -->
+<div class="grid-bg"></div>
+<div class="orb" style="background:var(--gradient-glow);width:480px;height:480px;top:-120px;left:-120px;"></div>
+<div class="orb" style="background:var(--gradient-primary);width:520px;height:520px;top:200px;right:-160px;animation-delay:-4s;"></div>
+
+<div id="toasts" class="toasts"></div>
+
+<!-- ============ NAV ============ -->
+<header class="sticky top-0 z-40" style="backdrop-filter:blur(16px);background:rgba(11,13,26,0.6);border-bottom:1px solid var(--border)">
+  <div class="mx-auto" style="max-width:80rem;padding:.75rem 1rem;display:flex;align-items:center;gap:1rem">
+    <button id="logoBtn" class="btn-ghost" style="display:flex;align-items:center;gap:.5rem;padding:.25rem .5rem;border-radius:.6rem">
+      <div style="position:relative">
+        <div style="position:absolute;inset:0;filter:blur(14px);opacity:.6;background:var(--primary);border-radius:.75rem"></div>
+        <div style="position:relative;height:2.25rem;width:2.25rem;border-radius:.75rem;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center">
+          <!-- brain -->
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0b0d1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 0 7 4.5v.5a3 3 0 0 0-3 3v1a3 3 0 0 0 1 2.236V12a3 3 0 0 0 1 2.236V15a3 3 0 0 0 3 3v.5A2.5 2.5 0 0 0 11.5 21V3A2.5 2.5 0 0 0 9 .5"/><path d="M14.5 2A2.5 2.5 0 0 1 17 4.5v.5a3 3 0 0 1 3 3v1a3 3 0 0 1-1 2.236V12a3 3 0 0 1-1 2.236V15a3 3 0 0 1-3 3v.5a2.5 2.5 0 0 1-2.5 2.5"/></svg>
+        </div>
+      </div>
+      <div style="text-align:left">
+        <div class="font-display" style="font-weight:700;font-size:1rem;line-height:1">FlashMaster Pro</div>
+        <div style="font-size:.625rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase">Smart Flashcard Learning Platform</div>
+      </div>
+    </button>
+
+    <div class="hide-sm" style="position:relative;flex:1;max-width:24rem;margin:0 1rem">
+      <svg class="icon" style="position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="searchTop" placeholder="Search flashcards..." style="padding-left:2.25rem"/>
+    </div>
+
+    <div style="flex:1" class="hide-sm-fill"></div>
+
+    <div class="hide-sm glass" style="display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem;border-radius:9999px">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+      <span style="font-size:.75rem;font-weight:500"><span id="streakNav">0</span> day streak</span>
+    </div>
+    <div class="hide-sm glass" style="display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem;border-radius:9999px">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      <span style="font-size:.75rem;font-weight:500"><span id="xpNav">0</span> XP</span>
+    </div>
+
+    <button id="newBtn" class="btn-hero" style="padding:.5rem 1rem;border-radius:9999px;font-weight:500;display:inline-flex;align-items:center;gap:.35rem;font-size:.85rem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg> New
+    </button>
+  </div>
+</header>
+
+<main class="mx-auto" style="max-width:80rem;padding:2rem 1rem">
+  <div id="dashboardView"></div>
+  <div id="studyView" style="display:none"></div>
+</main>
+
+<footer style="border-top:1px solid var(--border);margin-top:4rem">
+  <div class="mx-auto" style="max-width:80rem;padding:1.5rem 1rem;text-align:center;font-size:.75rem;color:var(--muted)">
+    FlashMaster Pro · Smart Flashcard Learning Platform · <span id="year"></span>
+  </div>
+</footer>
+
+<!-- ================== APP SCRIPT ================== -->
+<script>
+/* ---------- State / persistence ---------- */
+const STORAGE_KEY = "flashmasterpro.state.v1";
+
+const seed = [
+  { id: uid(), question: "What is the time complexity of binary search?", answer: "O(log n)", explanation: "Each step halves the search space.", category: "Algorithms", difficulty: "Easy", status: "new", reviewCount: 0, createdAt: Date.now()-86400000 },
+  { id: uid(), question: "What does CSS stand for?", answer: "Cascading Style Sheets", category: "Web", difficulty: "Easy", status: "new", reviewCount: 0, createdAt: Date.now()-70000000 },
+  { id: uid(), question: "Explain the difference between let and var in JavaScript.", answer: "let is block-scoped; var is function-scoped and hoisted.", explanation: "let was introduced in ES6 to fix scoping pitfalls of var.", category: "JavaScript", difficulty: "Medium", status: "new", reviewCount: 0, createdAt: Date.now()-60000000 },
+  { id: uid(), question: "What is a closure?", answer: "A function bundled with references to its surrounding state.", category: "JavaScript", difficulty: "Hard", status: "new", reviewCount: 0, createdAt: Date.now()-50000000 },
+];
+
+const defaultState = { cards: seed, xp: 0, streak: 0, lastStudyDate: null, sessions: 0 };
+
+let state = loadState();
+let view = "dashboard";
+let search = "";
+let filterDiff = "all";
+let sort = "newest";
+let studyIndex = 0;
+let flipped = false;
+
+function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return structuredClone(defaultState);
+    return Object.assign({}, defaultState, JSON.parse(raw));
+  }catch{return structuredClone(defaultState)}
+}
+function saveState(){localStorage.setItem(STORAGE_KEY, JSON.stringify(state))}
+
+function getBadge(xp){
+  if(xp>=500) return {name:"Master", next:null};
+  if(xp>=200) return {name:"Scholar", next:500};
+  if(xp>=75) return {name:"Learner", next:200};
+  return {name:"Beginner", next:75};
+}
+
+/* ---------- Filter / sort ---------- */
+function filteredCards(){
+  const q = search.trim().toLowerCase();
+  let list = state.cards.filter(c=>{
+    const ms = !q || c.question.toLowerCase().includes(q) || c.category.toLowerCase().includes(q);
+    const md = filterDiff==="all" || c.difficulty===filterDiff;
+    return ms && md;
+  });
+  if(sort==="newest") list.sort((a,b)=>b.createdAt-a.createdAt);
+  if(sort==="oldest") list.sort((a,b)=>a.createdAt-b.createdAt);
+  if(sort==="alpha")  list.sort((a,b)=>a.question.localeCompare(b.question));
+  return list;
+}
+
+function stats(){
+  const total = state.cards.length;
+  const known = state.cards.filter(c=>c.status==="known").length;
+  const review = state.cards.filter(c=>c.status==="review").length;
+  const studied = state.cards.filter(c=>c.reviewCount>0).length;
+  return {total, known, review, studied};
+}
+
+/* ---------- Toast ---------- */
+function toast(msg, type){
+  const el = document.createElement("div");
+  el.className = "toast " + (type||"");
+  el.textContent = msg;
+  document.getElementById("toasts").appendChild(el);
+  setTimeout(()=>{el.style.opacity="0";el.style.transition="opacity .3s";setTimeout(()=>el.remove(),300)},2500);
+}
+
+/* ---------- Rendering ---------- */
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+
+function renderHeader(){
+  document.getElementById("streakNav").textContent = state.streak;
+  document.getElementById("xpNav").textContent = state.xp;
+}
+
+function renderDashboard(){
+  const s = stats();
+  const b = getBadge(state.xp);
+  const masteryPct = s.total ? Math.round((s.known/s.total)*100) : 0;
+  const cards = filteredCards();
+
+  const html = `
+    <div style="display:flex;flex-direction:column;gap:2.5rem">
+
+      <!-- Hero -->
+      <section class="glass" style="position:relative;overflow:hidden;border-radius:1.75rem;padding:2.5rem">
+        <div style="position:absolute;inset:0;opacity:.5;pointer-events:none;background:radial-gradient(ellipse at top,rgba(120,80,220,.45),transparent 60%),radial-gradient(ellipse at bottom right,rgba(40,90,200,.35),transparent 60%)"></div>
+        <div style="position:relative;max-width:42rem">
+          <div style="display:inline-flex;align-items:center;gap:.5rem;padding:.25rem .75rem;border-radius:9999px;border:1px solid var(--border);background:rgba(255,255,255,.04);font-size:.75rem;color:var(--muted);margin-bottom:1.25rem">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+            AI-inspired learning, designed for 2026
+          </div>
+          <h1 class="font-display" style="font-size:clamp(2rem,4vw,3.75rem);font-weight:700;line-height:1.05">
+            Learn faster with <span class="gradient-text">smart flashcards</span>
+          </h1>
+          <p style="margin-top:1.25rem;font-size:1rem;color:var(--muted);max-width:32rem">
+            Create, manage and master knowledge using interactive flashcards. Track progress, build streaks, and turn study sessions into a habit.
+          </p>
+          <div style="margin-top:1.75rem;display:flex;flex-wrap:wrap;gap:.75rem">
+            <button class="btn-hero" id="startLearningBtn" style="padding:.75rem 1.5rem;border-radius:9999px;display:inline-flex;align-items:center;gap:.4rem;font-weight:500">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#0b0d1a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+              Start Learning
+            </button>
+            <button class="btn" id="createHeroBtn" style="padding:.75rem 1.5rem;border-radius:9999px;display:inline-flex;align-items:center;gap:.4rem;font-weight:500">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+              Create Flashcard
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats -->
+      <section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem" class="stats-grid">
+        ${statCard("Total Cards", s.total, "#3b82f6", layersSVG())}
+        ${statCard("Mastered", s.known, "#22d3ee", checkSVG())}
+        ${statCard("Day Streak", state.streak, "#3b82f6", flameSVG())}
+        ${statCard("Sessions", state.sessions, "#3b82f6", trophySVG())}
+      </section>
+
+      <!-- Progress -->
+      <section style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem" class="progress-grid">
+        <div class="glass" style="border-radius:1.25rem;padding:1.5rem;grid-column:span 2">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+            <div>
+              <h3 class="font-display" style="font-size:1.125rem;font-weight:600">Mastery progress</h3>
+              <p style="font-size:.875rem;color:var(--muted);margin:.25rem 0 0">${s.known} of ${s.total} cards mastered</p>
+            </div>
+            <span class="font-display gradient-text" style="font-size:1.875rem;font-weight:700">${masteryPct}%</span>
+          </div>
+          <div class="progress"><div style="width:${masteryPct}%"></div></div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1.5rem">
+            ${miniStat("Studied", s.studied)}
+            ${miniStat("To review", s.review)}
+            ${miniStat("New", Math.max(0, s.total - s.studied))}
+          </div>
+        </div>
+        <div class="glass" style="border-radius:1.25rem;padding:1.5rem">
+          <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:.75rem">
+            <div class="glow-neon" style="height:2.5rem;width:2.5rem;border-radius:.75rem;display:flex;align-items:center;justify-content:center;background:var(--gradient-glow)">
+              ${trophySVG("#0b0d1a", 20)}
+            </div>
+            <div>
+              <p style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin:0">Current Rank</p>
+              <p class="font-display" style="font-size:1.25rem;font-weight:700;margin:0">${b.name}</p>
+            </div>
+          </div>
+          <div style="font-size:.875rem;color:var(--muted);margin-bottom:.5rem">
+            ${state.xp} XP ${b.next ? "· "+(b.next-state.xp)+" to next rank" : "· Max rank reached"}
+          </div>
+          ${b.next ? `<div class="progress" style="height:.4rem"><div style="width:${Math.min(100,(state.xp/b.next)*100)}%"></div></div>` : ""}
+        </div>
+      </section>
+
+      <!-- Library -->
+      <section style="display:flex;flex-direction:column;gap:1rem">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;justify-content:space-between">
+          <h2 class="font-display" style="font-size:1.5rem;font-weight:700">Your library</h2>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.5rem">
+            <input id="searchInline" placeholder="Search..." style="width:11rem" value="${escapeHTML(search)}"/>
+            <select id="filterSel" style="width:9rem">
+              <option value="all" ${filterDiff==="all"?"selected":""}>All levels</option>
+              <option value="Easy" ${filterDiff==="Easy"?"selected":""}>Easy</option>
+              <option value="Medium" ${filterDiff==="Medium"?"selected":""}>Medium</option>
+              <option value="Hard" ${filterDiff==="Hard"?"selected":""}>Hard</option>
+            </select>
+            <select id="sortSel" style="width:9rem">
+              <option value="newest" ${sort==="newest"?"selected":""}>Newest</option>
+              <option value="oldest" ${sort==="oldest"?"selected":""}>Oldest</option>
+              <option value="alpha"  ${sort==="alpha"?"selected":""}>Alphabetical</option>
+            </select>
+          </div>
+        </div>
+
+        ${cards.length===0 ? emptyState() : `
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem">
+            ${cards.map(libraryCard).join("")}
+          </div>
+        `}
+      </section>
+    </div>
+  `;
+
+  document.getElementById("dashboardView").innerHTML = html;
+
+  // Wire up
+  document.getElementById("startLearningBtn").onclick = startStudy;
+  document.getElementById("createHeroBtn").onclick = ()=>openForm();
+  const si = document.getElementById("searchInline");
+  si.oninput = e=>{search=e.target.value;renderDashboard();const si2=document.getElementById("searchInline");if(si2){si2.focus();si2.selectionStart=si2.value.length;}};
+  document.getElementById("filterSel").onchange = e=>{filterDiff=e.target.value;renderDashboard()};
+  document.getElementById("sortSel").onchange = e=>{sort=e.target.value;renderDashboard()};
+
+  cards.forEach(c=>{
+    const editBtn = document.getElementById("edit-"+c.id);
+    const delBtn = document.getElementById("del-"+c.id);
+    if(editBtn) editBtn.onclick = ()=>openForm(c);
+    if(delBtn) delBtn.onclick = ()=>confirmDelete(c);
+  });
+}
+
+function statCard(label, value, color, icon){
+  return `
+    <div class="glass stat-card" style="border-radius:1.25rem;padding:1.25rem">
+      <div class="blob" style="background:${color}"></div>
+      <div style="position:relative;display:flex;align-items:center;gap:.5rem;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em">
+        ${icon}<span>${label}</span>
+      </div>
+      <div class="font-display" style="position:relative;margin-top:.75rem;font-size:1.875rem;font-weight:700">${value}</div>
+    </div>
+  `;
+}
+function miniStat(label, value){
+  return `
+    <div style="border-radius:.75rem;background:rgba(11,13,26,.4);border:1px solid var(--border);padding:.75rem">
+      <div style="font-size:.75rem;color:var(--muted)">${label}</div>
+      <div class="font-display" style="font-size:1.25rem;font-weight:700;margin-top:.25rem">${value}</div>
+    </div>`;
+}
+function libraryCard(c){
+  return `
+    <div class="glass library-card" style="border-radius:1.25rem;padding:1.25rem;position:relative;transition:box-shadow .25s">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.75rem">
+        <span class="badge">${escapeHTML(c.category)}</span>
+        <span class="badge diff-${c.difficulty}">${c.difficulty}</span>
+      </div>
+      <h3 class="font-display line-clamp-3" style="font-weight:600;font-size:1rem;line-height:1.35;min-height:3.5rem">${escapeHTML(c.question)}</h3>
+      <p class="line-clamp-2" style="margin-top:.5rem;font-size:.875rem;color:var(--muted)">${escapeHTML(c.answer)}</p>
+      <div style="margin-top:1rem;display:flex;align-items:center;justify-content:space-between;font-size:.75rem;color:var(--muted)">
+        <span style="display:inline-flex;align-items:center;gap:.25rem">
+          ${clockSVG()} ${c.reviewCount} review${c.reviewCount===1?"":"s"}
+        </span>
+        <span class="status-${c.status}" style="padding:.1rem .55rem;border-radius:9999px;font-size:.625rem;text-transform:uppercase;letter-spacing:.1em">${c.status}</span>
+      </div>
+      <div class="actions" style="margin-top:1rem;display:flex;gap:.5rem">
+        <button id="edit-${c.id}" class="btn" style="flex:1;padding:.4rem;border-radius:.6rem;font-size:.8rem;display:inline-flex;align-items:center;justify-content:center;gap:.3rem">${pencilSVG()} Edit</button>
+        <button id="del-${c.id}" class="btn" style="flex:1;padding:.4rem;border-radius:.6rem;font-size:.8rem;color:#fda4af;display:inline-flex;align-items:center;justify-content:center;gap:.3rem">${trashSVG()} Delete</button>
+      </div>
+    </div>
+  `;
+}
+function emptyState(){
+  return `
+    <div class="glass" style="border-radius:1.75rem;padding:3rem;text-align:center">
+      <div class="glow-primary" style="margin:0 auto 1rem;height:4rem;width:4rem;border-radius:1rem;display:flex;align-items:center;justify-content:center;background:var(--gradient-primary)">
+        ${brainSVG("#0b0d1a", 32)}
+      </div>
+      <h3 class="font-display" style="font-size:1.25rem;font-weight:700">No flashcards found</h3>
+      <p style="color:var(--muted);margin-top:.5rem;max-width:24rem;margin-left:auto;margin-right:auto">
+        Try a different search or filter, or create a new flashcard to expand your library.
+      </p>
+      <button class="btn-hero" id="emptyCreateBtn" style="margin-top:1.5rem;padding:.6rem 1.25rem;border-radius:9999px;display:inline-flex;align-items:center;gap:.4rem">
+        ${plusSVG("#0b0d1a")} Create flashcard
+      </button>
+    </div>
+  `;
+}
+
+/* ---------- Study mode ---------- */
+function startStudy(){
+  const cards = filteredCards();
+  if(cards.length===0){ toast("No cards to study. Create one first!", "error"); return; }
+  studyIndex = 0; flipped = false;
+  state.sessions += 1; saveState();
+  view = "study"; renderApp();
+}
+function renderStudy(){
+  const cards = filteredCards();
+  if(cards.length===0){ view="dashboard"; renderApp(); return; }
+  const i = Math.min(studyIndex, cards.length-1);
+  const c = cards[i];
+  const progress = ((i+1)/cards.length)*100;
+
+  const html = `
+    <div style="max-width:48rem;margin:0 auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+        <button id="exitBtn" class="btn-ghost" style="padding:.4rem .75rem;border-radius:9999px;display:inline-flex;align-items:center;gap:.3rem;font-size:.85rem">
+          ${xSVG()} Exit study
+        </button>
+        <div style="font-size:.875rem;color:var(--muted)">
+          Card <span style="color:var(--fg);font-weight:500">${i+1}</span> of ${cards.length}
+        </div>
+      </div>
+
+      <div class="progress" style="margin-bottom:2rem"><div style="width:${progress}%"></div></div>
+
+      <div class="card-3d" style="height:420px;margin-bottom:1.5rem">
+        <div class="card-inner ${flipped?"card-flipped":""}" id="cardInner">
+          <div class="card-face glass" id="cardFront" style="padding:2rem;display:flex;flex-direction:column;cursor:pointer">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span class="badge">${escapeHTML(c.category)}</span>
+              <span class="badge diff-${c.difficulty}">${c.difficulty}</span>
+            </div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center">
+              <div>
+                <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.2em;color:var(--muted);margin-bottom:1rem">Question</div>
+                <h2 class="font-display" style="font-size:clamp(1.5rem,3vw,2.25rem);font-weight:700;line-height:1.15">${escapeHTML(c.question)}</h2>
+              </div>
+            </div>
+            <button class="btn-hero" id="showAnsBtn" style="align-self:center;padding:.6rem 1.75rem;border-radius:9999px;display:inline-flex;align-items:center;gap:.4rem">
+              ${rotateSVG()} Show Answer
+            </button>
+          </div>
+
+          <div class="card-face card-back glass glow-neon" id="cardBack" style="padding:2rem;display:flex;flex-direction:column;cursor:pointer;background:linear-gradient(135deg, rgba(34,38,82,.92), rgba(48,28,90,.92))">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span class="badge">${escapeHTML(c.category)}</span>
+              <span style="font-size:.7rem;text-transform:uppercase;letter-spacing:.2em;color:#22d3ee">Answer</span>
+            </div>
+            <div style="flex:1;display:flex;align-items:center;justify-content:center;text-align:center">
+              <div>
+                <h2 class="font-display" style="font-size:clamp(1.25rem,2.4vw,1.875rem);font-weight:700;line-height:1.2">${escapeHTML(c.answer)}</h2>
+                ${c.explanation ? `<p style="margin-top:1rem;font-size:.95rem;color:var(--muted);max-width:32rem;margin-left:auto;margin-right:auto">${escapeHTML(c.explanation)}</p>` : ""}
+              </div>
+            </div>
+            <div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">
+              <button id="reviewBtn" class="btn" style="padding:.5rem 1.25rem;border-radius:9999px;color:#fcd34d;border-color:rgba(245,158,11,.4)">Review Later</button>
+              <button id="knownBtn" class="btn-hero" style="padding:.5rem 1.25rem;border-radius:9999px;display:inline-flex;align-items:center;gap:.3rem">${checkSVG("#0b0d1a")} Mark as Known</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <button id="prevBtn" class="btn" style="padding:.5rem 1rem;border-radius:9999px;display:inline-flex;align-items:center;gap:.3rem" ${cards.length<2?"disabled style=opacity:.5":""}>
+          ${chevLeftSVG()} Previous
+        </button>
+        <p style="font-size:.75rem;color:var(--muted)" class="hide-sm">Click the card to flip</p>
+        <button id="nextBtn" class="btn" style="padding:.5rem 1rem;border-radius:9999px;display:inline-flex;align-items:center;gap:.3rem" ${cards.length<2?"disabled style=opacity:.5":""}>
+          Next ${chevRightSVG()}
+        </button>
+      </div>
+    </div>
+  `;
+  document.getElementById("studyView").innerHTML = html;
+
+  const flip = ()=>{flipped=!flipped;document.getElementById("cardInner").classList.toggle("card-flipped")};
+  document.getElementById("cardFront").onclick = flip;
+  document.getElementById("cardBack").onclick = (e)=>{ if(e.target.tagName!=="BUTTON") flip() };
+  document.getElementById("showAnsBtn").onclick = (e)=>{e.stopPropagation();flip()};
+  document.getElementById("exitBtn").onclick = ()=>{ view="dashboard"; renderApp() };
+  document.getElementById("prevBtn").onclick = goPrev;
+  document.getElementById("nextBtn").onclick = goNext;
+  document.getElementById("reviewBtn").onclick = (e)=>{e.stopPropagation();markCard(c.id,"review")};
+  document.getElementById("knownBtn").onclick = (e)=>{e.stopPropagation();markCard(c.id,"known")};
+}
+function goNext(){
+  const cards = filteredCards();
+  flipped=false;
+  document.getElementById("cardInner")?.classList.remove("card-flipped");
+  setTimeout(()=>{studyIndex=(studyIndex+1)%cards.length;renderStudy()},200);
+}
+function goPrev(){
+  const cards = filteredCards();
+  flipped=false;
+  document.getElementById("cardInner")?.classList.remove("card-flipped");
+  setTimeout(()=>{studyIndex=(studyIndex-1+cards.length)%cards.length;renderStudy()},200);
+}
+function markCard(id, status){
+  const today = new Date().toDateString();
+  const card = state.cards.find(c=>c.id===id);
+  if(!card) return;
+  const before = state.xp;
+  const gain = status==="known"?10:3;
+  state.streak = state.lastStudyDate===today ? state.streak : state.streak+1;
+  state.lastStudyDate = today;
+  state.xp += gain;
+  card.status = status;
+  card.reviewCount += 1;
+  saveState(); renderHeader();
+  toast(status==="known"?`Marked as known +${gain} XP`:`Saved for review +${gain} XP`,"success");
+  if(Math.floor((before+gain)/75) > Math.floor(before/75)){
+    toast("🏆 New badge unlocked: "+getBadge(before+gain).name);
+  }
+  goNext();
+}
+
+/* ---------- Create / Edit modal ---------- */
+function openForm(card){
+  const isEdit = !!card;
+  const c = card || {question:"",answer:"",explanation:"",category:"General",difficulty:"Medium"};
+  const wrap = document.createElement("div");
+  wrap.className = "modal-backdrop";
+  wrap.innerHTML = `
+    <div class="modal">
+      <h3 class="font-display" style="font-size:1.5rem;font-weight:700">${isEdit?"Edit flashcard":"Create flashcard"}</h3>
+      <p style="color:var(--muted);font-size:.875rem;margin:.25rem 0 1rem">Craft a clear question and a concise answer.</p>
+      <form id="cardForm" style="display:flex;flex-direction:column;gap:.85rem">
+        <div><label>Question</label><textarea name="question" rows="2" maxlength="300" required>${escapeHTML(c.question)}</textarea></div>
+        <div><label>Answer</label><textarea name="answer" rows="3" maxlength="600" required>${escapeHTML(c.answer)}</textarea></div>
+        <div><label>Explanation (optional)</label><textarea name="explanation" rows="2" maxlength="500">${escapeHTML(c.explanation||"")}</textarea></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div><label>Category</label><input name="category" maxlength="40" value="${escapeHTML(c.category)}"/></div>
+          <div><label>Difficulty</label>
+            <select name="difficulty">
+              <option ${c.difficulty==="Easy"?"selected":""}>Easy</option>
+              <option ${c.difficulty==="Medium"?"selected":""}>Medium</option>
+              <option ${c.difficulty==="Hard"?"selected":""}>Hard</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.5rem">
+          <button type="button" id="cancelBtn" class="btn-ghost" style="padding:.5rem 1rem;border-radius:9999px">Cancel</button>
+          <button type="submit" class="btn-hero" style="padding:.5rem 1.25rem;border-radius:9999px">${isEdit?"Save changes":"Save card"}</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+  const close = ()=>wrap.remove();
+  wrap.addEventListener("click", e=>{ if(e.target===wrap) close() });
+  wrap.querySelector("#cancelBtn").onclick = close;
+  wrap.querySelector("#cardForm").onsubmit = e=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const data = {
+      question: fd.get("question").trim(),
+      answer: fd.get("answer").trim(),
+      explanation: (fd.get("explanation")||"").trim() || undefined,
+      category: (fd.get("category")||"General").trim() || "General",
+      difficulty: fd.get("difficulty"),
+    };
+    if(!data.question || !data.answer){ toast("Question and answer are required.","error"); return; }
+    if(isEdit){
+      Object.assign(card, data);
+      toast("Flashcard updated","success");
+    } else {
+      state.cards.unshift({...data, id: uid(), status:"new", reviewCount:0, createdAt:Date.now()});
+      state.xp += 5;
+      toast("Flashcard created +5 XP","success");
+    }
+    saveState();
+    close();
+    renderApp();
+  };
+}
+
+function confirmDelete(card){
+  const wrap = document.createElement("div");
+  wrap.className = "modal-backdrop";
+  wrap.innerHTML = `
+    <div class="modal" style="max-width:24rem">
+      <h3 class="font-display" style="font-size:1.25rem;font-weight:700">Delete this flashcard?</h3>
+      <p style="color:var(--muted);font-size:.875rem;margin:.5rem 0 1.25rem">This action cannot be undone. The card will be removed from your library.</p>
+      <div style="display:flex;justify-content:flex-end;gap:.5rem">
+        <button id="cancelDel" class="btn-ghost" style="padding:.5rem 1rem;border-radius:9999px">Cancel</button>
+        <button id="confirmDel" class="btn-danger" style="padding:.5rem 1.25rem;border-radius:9999px">Delete</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+  const close = ()=>wrap.remove();
+  wrap.addEventListener("click", e=>{ if(e.target===wrap) close() });
+  wrap.querySelector("#cancelDel").onclick = close;
+  wrap.querySelector("#confirmDel").onclick = ()=>{
+    state.cards = state.cards.filter(c=>c.id!==card.id);
+    saveState(); close(); renderApp();
+    toast("Flashcard deleted","success");
+  };
+}
+
+/* ---------- SVGs ---------- */
+function svg(path, stroke="currentColor", size=16){
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
+}
+function layersSVG(){return svg(`<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m2 12 8.6 3.91a2 2 0 0 0 1.66 0L22 12"/><path d="m2 17 8.6 3.91a2 2 0 0 0 1.66 0L22 17"/>`)}
+function checkSVG(stroke="currentColor"){return svg(`<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/>`,stroke)}
+function flameSVG(){return svg(`<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>`)}
+function trophySVG(stroke="currentColor",size=16){return svg(`<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>`,stroke,size)}
+function clockSVG(){return svg(`<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>`,"currentColor",12)}
+function pencilSVG(){return svg(`<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>`,"currentColor",14)}
+function trashSVG(){return svg(`<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>`,"currentColor",14)}
+function plusSVG(stroke="currentColor"){return svg(`<path d="M5 12h14M12 5v14"/>`,stroke)}
+function rotateSVG(){return svg(`<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>`,"#0b0d1a")}
+function xSVG(){return svg(`<path d="M18 6 6 18M6 6l12 12"/>`)}
+function chevLeftSVG(){return svg(`<path d="m15 18-6-6 6-6"/>`)}
+function chevRightSVG(){return svg(`<path d="m9 18 6-6-6-6"/>`)}
+function brainSVG(stroke="currentColor",size=20){return svg(`<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>`,stroke,size)}
+
+/* ---------- App entry ---------- */
+function renderApp(){
+  renderHeader();
+  if(view==="dashboard"){
+    document.getElementById("dashboardView").style.display="block";
+    document.getElementById("studyView").style.display="none";
+    renderDashboard();
+  } else {
+    document.getElementById("dashboardView").style.display="none";
+    document.getElementById("studyView").style.display="block";
+    renderStudy();
+  }
+}
+
+document.getElementById("year").textContent = new Date().getFullYear();
+document.getElementById("logoBtn").onclick = ()=>{ view="dashboard"; renderApp() };
+document.getElementById("newBtn").onclick = ()=>openForm();
+document.getElementById("searchTop").addEventListener("input",e=>{
+  search = e.target.value;
+  if(view==="dashboard") renderDashboard();
+});
+
+// Responsive stat grid
+const styleTag = document.createElement("style");
+styleTag.textContent = `
+  @media(min-width:1024px){ .stats-grid{grid-template-columns:repeat(4,minmax(0,1fr)) !important} }
+  @media(max-width:900px){ .progress-grid{grid-template-columns:1fr !important} .progress-grid > div:first-child{grid-column:auto !important} }
+`;
+document.head.appendChild(styleTag);
+
+renderApp();
+</script>
+</body>
+</html>
